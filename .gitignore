@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+target/
+*.wasm
+*.lock
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+coverage/
