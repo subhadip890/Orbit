@@ -34,33 +34,25 @@ A single-campaign donation page on Stellar Testnet:
 
 **1. Wallet connected state**
 
-![Wallet Connected](public/screenshots/02-wallet-connected.png)
-
-*Wallet address, network badge, XLM balance, and Disconnect button shown in nav*
+> 📸 Screenshot coming soon — connect Freighter and capture nav bar showing address + balance + Disconnect button
 
 ---
 
 **2. Balance displayed**
 
-![Balance Display](public/screenshots/03-balance-display.png)
-
-*XLM balance shown in nav chip (click to refresh) + campaign raise stats in progress card*
+> 📸 Screenshot coming soon — shows XLM balance in nav chip and campaign progress card
 
 ---
 
 **3. Successful testnet transaction**
 
-![Transaction Success](public/screenshots/04-tx-success.png)
-
-*Green "Donation Confirmed" panel with transaction hash and Stellar Expert explorer link*
+> 📸 Screenshot coming soon — green "Donation Confirmed" panel with transaction hash
 
 ---
 
 **4. Transaction result shown to user**
 
-![Transaction Result](public/screenshots/05-tx-result.png)
-
-*Full donation flow: pending states (building → awaiting Freighter signature → submitting) through to final success result*
+> 📸 Screenshot coming soon — full donation flow result (success/error state)
 
 ---
 
