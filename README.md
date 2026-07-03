@@ -34,13 +34,17 @@ A single-campaign donation page on Stellar Testnet:
 
 **1. Wallet connected state**
 
-> 📸 Screenshot coming soon — connect Freighter and capture nav bar showing address + balance + Disconnect button
+![Wallet Connected](public/screenshots/conectedpic.png)
+
+*Nav bar: wallet address `GAMX…5QCM`, TESTNET badge, `9644.7172 XLM` balance, Disconnect button*
 
 ---
 
 **2. Balance displayed**
 
-> 📸 Screenshot coming soon — shows XLM balance in nav chip and campaign progress card
+![Balance Displayed](public/screenshots/conectedpic.png)
+
+*Balance shown in nav chip (`9644.7172 XLM`) and in the "Available" field inside the donate card*
 
 ---
 
