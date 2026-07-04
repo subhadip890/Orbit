@@ -9,7 +9,7 @@
 | Level | Belt | Status |
 |-------|------|--------|
 | Level 1 | ⬜ White Belt | ✅ Complete |
-| Level 2 | 🟡 Yellow Belt | 🔜 Pending |
+| Level 2 | 🟡 Yellow Belt | ✅ Complete |
 | Level 3 | 🟠 Orange Belt | 🔜 Pending |
 
 ---
@@ -134,6 +134,86 @@ Verify donations on [Stellar Expert Testnet](https://stellar.expert/explorer/tes
 
 ---
 
+## Level 2 — Yellow Belt
+
+### What's built
+
+Multi-wallet integration with a deployed Soroban smart contract on Stellar Testnet:
+
+- **Multi-wallet support** — Stellar Wallets Kit (SWK) supports Freighter, xBull, and LOBSTR via a unified modal
+- **Wallet selection modal** — Click "Connect Wallet" to see all 3 wallet options with names, icons, and descriptions
+- **Soroban contract** — Crowdfunding contract deployed on testnet; tracks goal, raised amount, and donor count on-chain
+- **Contract read** — Fetches `get_goal`, `get_raised`, `get_donor_count` from contract via Soroban RPC simulation
+- **Contract write** — `donate()` builds a Soroban transaction, simulates, signs via selected wallet, submits
+- **Real-time sync** — Polls contract state every 5 seconds; live progress bar and donor count update without page refresh
+- **Transaction status** — Shows `building → awaiting_signature → submitting → success/failure` pipeline
+- **3 error types handled:**
+  - 🔍 `NOT_FOUND` — wallet extension not installed
+  - 🚫 `REJECTED` — user dismissed the connection/signing popup
+  - 💸 `INSUFFICIENT_BALANCE` — detected during Soroban simulation before signing
+
+---
+
+### Screenshots
+
+**Wallet selection modal (3 wallet options)**
+
+> 📸 Screenshot coming soon — connect button → modal with Freighter / xBull / LOBSTR
+
+---
+
+### Deployed contract
+
+| Item | Value |
+|------|-------|
+| **Contract ID** | `CAGQBZHKPIANYSX4T73YJAKCBKHOOMHDKFAAXEISEIHIKKGYCIJB4KOC` |
+| **Network** | Stellar Testnet |
+| **Deploy TX** | [`3f7384718cbcc4d5…`](https://stellar.expert/explorer/testnet/tx/3f7384718cbcc4d5128a204f9ac2d4311b3b5014a5af875e2314b0ab13ffb07c) |
+| **Init TX** | [`9edb16213ff9b6a8…`](https://stellar.expert/explorer/testnet/tx/9edb16213ff9b6a86998423d48ff9522bae0508f75cc11b5a08b828706932ffe) |
+| **Goal** | 10,000 XLM |
+| **Token** | Native XLM (SAC: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`) |
+
+View on Stellar Explorer:
+[Contract](https://stellar.expert/explorer/testnet/contract/CAGQBZHKPIANYSX4T73YJAKCBKHOOMHDKFAAXEISEIHIKKGYCIJB4KOC) · [Lab](https://lab.stellar.org/r/testnet/contract/CAGQBZHKPIANYSX4T73YJAKCBKHOOMHDKFAAXEISEIHIKKGYCIJB4KOC)
+
+---
+
+### Contract functions
+
+| Function | Args | Returns | Description |
+|----------|------|---------|-------------|
+| `initialize` | `owner`, `goal`, `token` | — | One-time setup |
+| `donate` | `donor: Address`, `amount: i128` | `i128` total raised | Transfers XLM, emits event |
+| `get_goal` | — | `i128` | Campaign goal in stroops |
+| `get_raised` | — | `i128` | Total raised so far |
+| `get_donor_count` | — | `u32` | Unique donor count |
+| `get_donor_amount` | `donor: Address` | `i128` | Individual donation total |
+| `withdraw` | — | — | Owner-only, when goal met |
+
+---
+
+### New code added in Level 2
+
+```
+src/
+├── hooks/
+│   ├── useWalletKit.ts     # SWK multi-wallet: connect/disconnect/sign (replaces useWallet.ts)
+│   └── useContract.ts      # Soroban RPC reads + donate() write + 5s polling
+├── components/
+│   ├── WalletModal.tsx     # Multi-wallet picker modal (Freighter / xBull / LOBSTR)
+│   ├── DonatePanel.tsx     # Updated — calls contract donate(), no publicKey arg needed
+│   └── TransactionResult.tsx  # Updated — typed error codes (INSUFFICIENT_BALANCE, USER_REJECTED)
+└── App.tsx                 # Level 2 root — modal, contract data, live progress, wallet error UI
+
+contracts/
+└── crowdfunding/
+    └── contracts/crowdfunding/src/
+        ├── lib.rs           # Soroban contract (initialize, donate, views, withdraw)
+        └── test.rs          # 3 passing unit tests
+```
+
+---
+
 ## Design decisions
 
 **Color palette** — Deep space theme: `#050A1A` (void black) base with `#E8D5A3` (warm gold/starlight) primary accent, `#4ECCA3` success/teal, `#FF6B6B` error/coral. Deliberately avoids the overused purple-blue gradient AI aesthetic.
@@ -152,4 +232,4 @@ This is a learning project built on Stellar Testnet. All transactions use testne
 
 ---
 
-*Orbit · Built on [Stellar](https://stellar.org) Testnet · White Belt Level 1*
+*Orbit · Built on [Stellar](https://stellar.org) Testnet · White Belt Level 1 · Yellow Belt Level 2*

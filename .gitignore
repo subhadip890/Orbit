@@ -6,7 +6,7 @@ build/
 .env.production
 target/
 *.wasm
-*.lock
+Cargo.lock
 .DS_Store
 Thumbs.db
 *.log
