@@ -170,6 +170,7 @@ Multi-wallet integration with a deployed Soroban smart contract on Stellar Testn
 | **Network** | Stellar Testnet |
 | **Deploy TX** | [`3f7384718cbcc4d5…`](https://stellar.expert/explorer/testnet/tx/3f7384718cbcc4d5128a204f9ac2d4311b3b5014a5af875e2314b0ab13ffb07c) |
 | **Init TX** | [`9edb16213ff9b6a8…`](https://stellar.expert/explorer/testnet/tx/9edb16213ff9b6a86998423d48ff9522bae0508f75cc11b5a08b828706932ffe) |
+| **Contract Call TX** | [`225b4c444c8dc182…`](https://stellar.expert/explorer/testnet/tx/225b4c444c8dc182bfe801c8f4faac0f5f0f0237c250f0ca215f2dafe8b4d392) (verifiable on Stellar Explorer) |
 | **Goal** | 10,000 XLM |
 | **Token** | Native XLM (SAC: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`) |
 
