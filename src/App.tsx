@@ -1,63 +1,141 @@
 /**
- * App.tsx
- * Root component — assembles nav, hero, and donate section.
- * Wires together useWallet and useTransaction hooks.
+ * App.tsx — Level 2 (Yellow Belt)
+ * Multi-wallet + Soroban contract integration.
+ * Replaces Level 1 Freighter-only + plain XLM transfer with:
+ *  - StellarWalletsKit (multi-wallet)
+ *  - Soroban contract read/write
+ *  - Real-time campaign data via polling
+ *  - 3 error types: wallet not found, user rejected, insufficient balance
  */
-import { lazy, Suspense } from 'react'
-import { useWallet } from './hooks/useWallet'
-import { useTransaction } from './hooks/useTransaction'
-import WalletPanel from './components/WalletPanel'
-import DonatePanel from './components/DonatePanel'
+import { useState, useCallback, Suspense, lazy } from 'react'
+import { useWalletKit } from './hooks/useWalletKit'
+import { useContract, stroopsToXlm } from './hooks/useContract'
+import { WalletModal } from './components/WalletModal'
+import { DonatePanel } from './components/DonatePanel'
+import { TransactionResult } from './components/TransactionResult'
 
 const Hero = lazy(() => import('./components/Hero'))
 
-// Progress is driven by a mock goal for Level 1 (no contract yet).
-// This will become contract-driven in Level 2.
-const CAMPAIGN_GOAL_XLM = 1000
-const CAMPAIGN_RAISED_MOCK = 342 // placeholder until contract
-
 export default function App() {
-  const { wallet, balance, connect, disconnect, refreshBalance, publicKey } = useWallet()
-  const { txState, sendDonation, resetTx, campaignAddress } = useTransaction()
+  const {
+    walletStatus,
+    showModal,
+    setShowModal,
+    connectWallet,
+    disconnect,
+    signTxXDR,
+    isConnected,
+    publicKey,
+    xlmBalance,
+  } = useWalletKit()
 
-  const progress = CAMPAIGN_RAISED_MOCK / CAMPAIGN_GOAL_XLM
+  const { campaign, txState, isPolling, hasContract, donate, resetTx, CONTRACT_ID } =
+    useContract(isConnected ? signTxXDR : undefined)
 
-  const handleDonate = async (senderKey: string, amount: string) => {
-    await sendDonation(senderKey, amount)
-    // Refresh balance after a donation attempt
-    await refreshBalance()
-  }
+  const [donateAmount, setDonateAmount] = useState('')
 
-  const balanceXLM =
-    balance.status === 'loaded' ? balance.xlm : null
+  const handleDonate = useCallback(async () => {
+    if (!publicKey || !donateAmount) return
+    const amount = parseFloat(donateAmount)
+    await donate(publicKey, amount)
+  }, [publicKey, donateAmount, donate])
+
+  const handleReset = useCallback(() => {
+    resetTx()
+    setDonateAmount('')
+  }, [resetTx])
+
+  // Derived state
+  const goalXLM = stroopsToXlm(campaign.goal)
+  const raisedXLM = stroopsToXlm(campaign.raised)
+  const progressPct = Math.round(campaign.progress * 100)
 
   return (
-    <div className="app-layout">
-      {/* ── Nav ─────────────────────────────────────────────────────────── */}
-      <nav className="nav" role="navigation" aria-label="Main navigation">
-        <div className="nav-logo">
-          <div className="nav-logo-dot" aria-hidden="true" />
-          Orbit
-        </div>
+    <div style={{ minHeight: '100vh', background: 'var(--color-space)', color: 'var(--color-white)' }}>
+      {/* ── Wallet Selection Modal ──────────────────────────────────────────── */}
+      <WalletModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSelectWallet={connectWallet}
+      />
 
-        <WalletPanel
-          wallet={wallet}
-          balance={balance}
-          onConnect={connect}
-          onDisconnect={disconnect}
-          onRefreshBalance={refreshBalance}
-        />
+      {/* ── Navigation ─────────────────────────────────────────────────────── */}
+      <nav className="nav-blur" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
+        <div
+          className="content-section"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 'var(--space-4) var(--space-6)',
+          }}
+        >
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="star-glow" style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-gold)', flexShrink: 0 }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--color-starlight)', letterSpacing: '-0.02em' }}>
+              Orbit
+            </span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', marginLeft: 4 }}>
+              Stellar Testnet · Level 2
+            </span>
+          </div>
+
+          {/* Wallet status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+            {walletStatus.status === 'connected' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div className="pulse-dot" />
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
+                      {walletStatus.publicKey.slice(0, 4)}…{walletStatus.publicKey.slice(-4)}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--color-muted)', opacity: 0.7 }}>
+                      {walletStatus.walletId} · TESTNET
+                    </div>
+                  </div>
+                </div>
+                {xlmBalance && (
+                  <div
+                    className="balance-chip"
+                    onClick={() => {}}
+                    title="XLM Balance"
+                    style={{ cursor: 'default' }}
+                  >
+                    <span className="balance-amount" style={{ fontSize: 'var(--text-sm)' }}>{xlmBalance}</span>
+                    <span className="balance-unit">XLM</span>
+                  </div>
+                )}
+                <button className="btn-ghost btn-sm" onClick={disconnect} style={{ color: 'var(--color-error)' }}>
+                  Disconnect
+                </button>
+              </>
+            ) : walletStatus.status === 'connecting' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--color-muted)', fontSize: 'var(--text-sm)' }}>
+                <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                Connecting…
+              </div>
+            ) : (
+              <button
+                id="connect-wallet-btn"
+                className="btn-primary btn-sm"
+                onClick={() => setShowModal(true)}
+              >
+                Connect Wallet
+              </button>
+            )}
+          </div>
+        </div>
       </nav>
 
-      {/* ── Hero / 3D scene ──────────────────────────────────────────────── */}
-      <Suspense fallback={
-        <div style={{ minHeight: '100vh', background: 'var(--color-space)' }} />
-      }>
-        <Hero progress={progress} />
+      {/* ── Hero ───────────────────────────────────────────────────────────── */}
+      <Suspense fallback={<div style={{ height: '60vh' }} />}>
+        <Hero />
       </Suspense>
 
-      {/* ── Main content ────────────────────────────────────────────────── */}
-      <main
+      {/* ── Main content ───────────────────────────────────────────────────── */}
+      <div
         style={{
           position: 'relative',
           zIndex: 10,
@@ -74,31 +152,52 @@ export default function App() {
               alignItems: 'start',
             }}
           >
-            {/* Left: campaign stats */}
+            {/* ── Left: Campaign info ─────────────────────────────────────── */}
             <div>
-              <div className="fade-in">
-                <span className="section-label">Stellar Testnet · Level 1</span>
-              </div>
-              <h1 className="hero-title fade-in fade-in-delay-1" style={{ marginTop: 12 }}>
-                Fund the <span>future</span><br />of Stellar.
-              </h1>
               <p
                 className="fade-in fade-in-delay-2"
                 style={{
-                  fontSize: 'var(--text-lg)',
-                  color: 'var(--color-muted)',
-                  maxWidth: 460,
-                  marginTop: 16,
-                  marginBottom: 32,
-                  lineHeight: 1.6,
+                  fontSize: 'var(--text-xs)',
+                  letterSpacing: '0.15em',
+                  color: 'var(--color-gold)',
+                  textTransform: 'uppercase',
+                  marginBottom: 'var(--space-3)',
+                  fontFamily: 'var(--font-display)',
                 }}
               >
-                Orbit is an open crowdfunding platform built on the Stellar network.
-                Connect your Freighter wallet and send XLM directly to campaigns
-                — transparent, instant, trustless.
+                Stellar Testnet · Level 2
               </p>
 
-              {/* Campaign progress */}
+              <h1
+                className="fade-in fade-in-delay-1"
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
+                  fontWeight: 800,
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.03em',
+                  marginBottom: 'var(--space-6)',
+                }}
+              >
+                Fund the future{' '}
+                <span style={{ color: 'var(--color-gold)' }}>of Stellar.</span>
+              </h1>
+
+              <p
+                className="fade-in fade-in-delay-2"
+                style={{
+                  fontSize: 'var(--text-base)',
+                  color: 'var(--color-muted)',
+                  lineHeight: 1.7,
+                  maxWidth: 440,
+                  marginBottom: 'var(--space-8)',
+                }}
+              >
+                Orbit is powered by a Soroban smart contract on Stellar Testnet.
+                Every donation is recorded on-chain, transparent, and instant.
+              </p>
+
+              {/* Campaign progress card */}
               <div
                 className="glass-card fade-in fade-in-delay-3"
                 style={{ padding: 'var(--space-6)', maxWidth: 420 }}
@@ -109,7 +208,7 @@ export default function App() {
                       Total raised
                     </span>
                     <div className="balance-display">
-                      <span className="balance-amount">{CAMPAIGN_RAISED_MOCK.toLocaleString()}</span>
+                      <span className="balance-amount">{parseFloat(raisedXLM).toLocaleString()}</span>
                       <span className="balance-unit">XLM</span>
                     </div>
                   </div>
@@ -117,44 +216,61 @@ export default function App() {
                     <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', display: 'block', marginBottom: 4 }}>
                       Goal
                     </span>
-                    <div className="balance-display">
-                      <span className="balance-amount" style={{ fontSize: 'var(--text-xl)' }}>
-                        {CAMPAIGN_GOAL_XLM.toLocaleString()}
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>
+                      <span style={{ fontSize: 'var(--text-xl)', color: 'var(--color-starlight)' }}>
+                        {parseFloat(goalXLM).toLocaleString()}
                       </span>
-                      <span className="balance-unit">XLM</span>
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-muted)', marginLeft: 4 }}>XLM</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="progress-track">
+                {/* Progress bar */}
+                <div className="progress-track" style={{ marginBottom: 8 }}>
                   <div
                     className="progress-fill"
-                    style={{ width: `${Math.min(progress * 100, 100)}%` }}
-                    role="progressbar"
-                    aria-valuenow={Math.round(progress * 100)}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label="Campaign progress"
+                    style={{ width: `${progressPct}%`, transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }}
                   />
                 </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
-                    {Math.round(progress * 100)}% funded
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-gold)' }}>
+                    {progressPct}% funded
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div className="pulse-dot" />
-                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>Testnet live</span>
+                    {isPolling && <div className="pulse-dot" style={{ background: 'var(--color-teal)' }} />}
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
+                      {campaign.donorCount} donor{campaign.donorCount !== 1 ? 's' : ''} · live
+                    </span>
                   </div>
                 </div>
 
-                {/* Stats row */}
-                <div className="divider" />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {/* Contract address */}
+                {hasContract && (
+                  <div className="divider" style={{ marginTop: 16, marginBottom: 12 }} />
+                )}
+                {hasContract && (
+                  <div>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', display: 'block', marginBottom: 4 }}>
+                      Contract ID (Testnet)
+                    </span>
+                    <a
+                      href={`https://stellar.expert/explorer/testnet/contract/${CONTRACT_ID}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-gold)', textDecoration: 'none', wordBreak: 'break-all' }}
+                    >
+                      {CONTRACT_ID.slice(0, 8)}…{CONTRACT_ID.slice(-8)} ↗
+                    </a>
+                  </div>
+                )}
+
+                {/* Stats */}
+                <div className="divider" style={{ marginTop: 16 }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
                   {[
                     { label: 'Network', value: 'Testnet' },
                     { label: 'Asset', value: 'XLM' },
-                    { label: 'Protocol', value: 'Stellar' },
+                    { label: 'Protocol', value: 'Soroban' },
                   ].map((s) => (
                     <div key={s.label} style={{ textAlign: 'center' }}>
                       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)', display: 'block' }}>{s.label}</span>
@@ -166,85 +282,83 @@ export default function App() {
                 </div>
               </div>
 
-              {/* How it works — informational, not decorative */}
-              <div className="fade-in fade-in-delay-4" style={{ marginTop: 'var(--space-8)', maxWidth: 420 }}>
-                <span className="section-label" style={{ marginBottom: 16, display: 'block' }}>How donations work</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  {[
-                    {
-                      step: 'Connect',
-                      desc: 'Freighter wallet signs in — your keys never leave your browser.',
-                    },
-                    {
-                      step: 'Enter amount',
-                      desc: 'Choose any amount in XLM. Minimum is 1 stroop (0.0000001 XLM).',
-                    },
-                    {
-                      step: 'Approve & send',
-                      desc: 'Freighter shows you the exact transaction before it goes to testnet.',
-                    },
-                  ].map(({ step, desc }) => (
-                    <div key={step} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                      <span
-                        style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 'var(--text-xs)',
-                          fontWeight: 700,
-                          color: 'var(--color-starlight)',
-                          minWidth: 56,
-                          paddingTop: 2,
-                        }}
+              {/* Error display for wallet errors */}
+              {walletStatus.status === 'error' && (
+                <div
+                  className="fade-in"
+                  style={{
+                    marginTop: 'var(--space-4)',
+                    padding: 'var(--space-4)',
+                    background: 'rgba(255, 107, 107, 0.08)',
+                    border: '1px solid rgba(255, 107, 107, 0.25)',
+                    borderRadius: 10,
+                    maxWidth: 420,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <span style={{ fontSize: 16 }}>
+                      {walletStatus.code === 'NOT_FOUND' ? '🔍' : walletStatus.code === 'REJECTED' ? '🚫' : '⚠️'}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--color-error)', fontWeight: 600, marginBottom: 4 }}>
+                        {walletStatus.code === 'NOT_FOUND'
+                          ? 'Wallet Not Found'
+                          : walletStatus.code === 'REJECTED'
+                          ? 'Connection Rejected'
+                          : 'Connection Error'}
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>{walletStatus.message}</div>
+                      <button
+                        className="btn-ghost btn-sm"
+                        onClick={() => setShowModal(true)}
+                        style={{ marginTop: 8, fontSize: 'var(--text-xs)' }}
                       >
-                        {step}
-                      </span>
-                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-muted)', lineHeight: 1.5 }}>
-                        {desc}
-                      </span>
+                        Try again
+                      </button>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Right: donate panel */}
+            {/* ── Right: Donate panel ─────────────────────────────────────── */}
             <div style={{ position: 'sticky', top: 88 }}>
-              <DonatePanel
-                isWalletConnected={wallet.status === 'connected'}
-                publicKey={publicKey}
-                balance={balanceXLM}
-                txState={txState}
-                onDonate={handleDonate}
-                onConnectWallet={connect}
-                onReset={resetTx}
-                campaignAddress={campaignAddress}
-              />
+              {txState.status === 'success' || txState.status === 'error' ? (
+                <TransactionResult
+                  txState={txState}
+                  onReset={handleReset}
+                />
+              ) : (
+                <DonatePanel
+                  isWalletConnected={isConnected}
+                  publicKey={publicKey}
+                  balance={xlmBalance}
+                  txState={txState}
+                  onDonate={handleDonate}
+                  onConnectWallet={() => setShowModal(true)}
+                  onReset={handleReset}
+                  campaignAddress={CONTRACT_ID || 'Contract not yet deployed'}
+                  amount={donateAmount}
+                  onAmountChange={setDonateAmount}
+                />
+              )}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Footer */}
-        <footer
-          style={{
-            textAlign: 'center',
-            padding: 'var(--space-8)',
-            borderTop: '1px solid var(--color-glass-border)',
-            marginTop: 'var(--space-16)',
-          }}
-        >
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
+      {/* ── Footer ─────────────────────────────────────────────────────────── */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: 'var(--space-8) 0' }}>
+        <div className="content-section" style={{ textAlign: 'center' }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-muted)' }}>
             Orbit · Built on{' '}
-            <a
-              href="https://stellar.org"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--color-starlight)' }}
-            >
+            <a href="https://stellar.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-gold)', textDecoration: 'none' }}>
               Stellar
             </a>{' '}
-            Testnet · White Belt Level 1
-          </p>
-        </footer>
-      </main>
+            Testnet · Yellow Belt Level 2
+          </span>
+        </div>
+      </footer>
     </div>
   )
 }

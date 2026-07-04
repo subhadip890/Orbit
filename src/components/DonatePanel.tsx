@@ -1,27 +1,28 @@
 /**
  * DonatePanel.tsx
  * Donation input + submit. Drives the transaction flow.
- * Shows pending → awaiting_signature → submitting → result inline.
+ * Level 2: accepts controlled amount/onAmountChange props,
+ * supports calling onDonate() without publicKey arg (App manages it).
  */
-import { useState } from 'react'
-import type { TxState } from '../hooks/useTransaction'
-import TransactionResult from './TransactionResult'
+import type { FC } from 'react'
+import type { ContractTxState } from '../hooks/useContract'
 
 interface DonatePanelProps {
   isWalletConnected: boolean
   publicKey: string | null
   balance: string | null
-  txState: TxState
-  onDonate: (publicKey: string, amount: string) => Promise<void>
+  txState: ContractTxState
+  onDonate: () => Promise<void>
   onConnectWallet: () => void
   onReset: () => void
   campaignAddress: string
+  amount: string
+  onAmountChange: (val: string) => void
 }
 
-// Preset amounts for quick selection
 const PRESETS = ['1', '5', '10', '25', '50']
 
-export default function DonatePanel({
+export const DonatePanel: FC<DonatePanelProps> = ({
   isWalletConnected,
   publicKey,
   balance,
@@ -30,9 +31,9 @@ export default function DonatePanel({
   onConnectWallet,
   onReset,
   campaignAddress,
-}: DonatePanelProps) {
-  const [amount, setAmount] = useState('')
-
+  amount,
+  onAmountChange,
+}) => {
   const isPending =
     txState.status === 'building' ||
     txState.status === 'awaiting_signature' ||
@@ -40,24 +41,23 @@ export default function DonatePanel({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!publicKey || !amount) return
-    await onDonate(publicKey, amount)
-    if (txState.status === 'success') setAmount('')
+    if (!isWalletConnected || !amount) return
+    await onDonate()
   }
 
   const handlePreset = (val: string) => {
-    setAmount(val)
+    onAmountChange(val)
     onReset()
   }
 
-  // Status label shown during pending states
   const pendingLabel: Record<string, string> = {
     building: 'Building transaction…',
-    awaiting_signature: 'Approve in Freighter…',
+    awaiting_signature: 'Approve in wallet…',
     submitting: 'Submitting to testnet…',
   }
 
   function shortAddress(addr: string) {
+    if (!addr || addr.length < 10) return addr
     return `${addr.slice(0, 6)}…${addr.slice(-4)}`
   }
 
@@ -79,12 +79,12 @@ export default function DonatePanel({
           Fund the Orbit Mission
         </h2>
         <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-muted)', lineHeight: 1.5 }}>
-          Help build open tools for Stellar developers. Every XLM moves us
-          closer to testnet → mainnet launch.
+          Help build open tools for Stellar developers. Every XLM moves us closer to
+          testnet → mainnet launch.
         </p>
       </div>
 
-      {/* Campaign address */}
+      {/* Contract / Campaign address */}
       <div
         className="glass-card-inner"
         style={{ padding: '10px 14px', marginBottom: 'var(--space-4)' }}
@@ -107,7 +107,7 @@ export default function DonatePanel({
       {!isWalletConnected ? (
         <div style={{ textAlign: 'center', padding: 'var(--space-4) 0' }}>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-muted)', marginBottom: 'var(--space-4)' }}>
-            Connect your Freighter wallet to donate XLM on Stellar Testnet.
+            Connect a Stellar wallet to donate XLM on testnet.
           </p>
           <button
             id="btn-connect-from-donate"
@@ -141,7 +141,7 @@ export default function DonatePanel({
               placeholder="0.00"
               value={amount}
               onChange={(e) => {
-                setAmount(e.target.value)
+                onAmountChange(e.target.value)
                 onReset()
               }}
               disabled={isPending}
@@ -180,7 +180,7 @@ export default function DonatePanel({
             ))}
           </div>
 
-          {/* Submit / pending button */}
+          {/* Submit / pending */}
           <button
             id="btn-donate"
             type="submit"
@@ -206,11 +206,6 @@ export default function DonatePanel({
           )}
         </form>
       )}
-
-      {/* Transaction result inline */}
-      <div style={{ marginTop: 'var(--space-4)' }}>
-        <TransactionResult txState={txState} onDismiss={onReset} />
-      </div>
     </div>
   )
 }
