@@ -158,7 +158,7 @@ Multi-wallet integration with a deployed Soroban smart contract on Stellar Testn
 
 **Wallet selection modal (3 wallet options)**
 
-> 📸 Screenshot coming soon — connect button → modal with Freighter / xBull / LOBSTR
+![Wallet Options Modal](public/screenshots/walletmodal.png)
 
 ---
 
