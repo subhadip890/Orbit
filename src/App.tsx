@@ -1,18 +1,23 @@
 /**
- * App.tsx — Level 2 (Yellow Belt)
- * Multi-wallet + Soroban contract integration.
- * Replaces Level 1 Freighter-only + plain XLM transfer with:
- *  - StellarWalletsKit (multi-wallet)
- *  - Soroban contract read/write
- *  - Real-time campaign data via polling
- *  - 3 error types: wallet not found, user rejected, insufficient balance
+ * App.tsx — Level 3 (Orange Belt)
+ * Advanced multi-campaign dApp with inter-contract communication.
+ * Level 2 features preserved + new Level 3 additions:
+ *  - Multi-campaign grid from CampaignsContract
+ *  - Leaderboard sidebar from LeaderboardContract (inter-contract)
+ *  - Create campaign modal
+ *  - Mobile responsive layout
+ *  - Real-time event streaming via polling
  */
 import { useState, useCallback, Suspense, lazy } from 'react'
 import { useWalletKit } from './hooks/useWalletKit'
 import { useContract, stroopsToXlm } from './hooks/useContract'
+import { useCampaigns } from './hooks/useCampaigns'
 import { WalletModal } from './components/WalletModal'
 import { DonatePanel } from './components/DonatePanel'
 import { TransactionResult } from './components/TransactionResult'
+import { CampaignCard } from './components/CampaignCard'
+import { Leaderboard } from './components/Leaderboard'
+import { CreateCampaignModal } from './components/CreateCampaignModal'
 
 const Hero = lazy(() => import('./components/Hero'))
 
@@ -32,6 +37,21 @@ export default function App() {
   const { campaign, txState, isPolling, hasContract, donate, resetTx, CONTRACT_ID } =
     useContract(isConnected ? signTxXDR : undefined)
 
+  // ── Level 3: Multi-campaign hook ──────────────────────────────────────────
+  const {
+    campaigns,
+    platformTotal,
+    txState: campaignTxState,
+    isPolling: campaignPolling,
+    loading: campaignLoading,
+    donate: donateToCampaign,
+    createCampaign,
+    resetTx: resetCampaignTx,
+    CAMPAIGNS_ID,
+    LEADERBOARD_ID,
+  } = useCampaigns(isConnected ? signTxXDR : undefined)
+
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [donateAmount, setDonateAmount] = useState('')
 
   const handleDonate = useCallback(async () => {
@@ -347,6 +367,106 @@ export default function App() {
         </div>
       </div>
 
+      {/* ── Level 3: Multi-Campaign Section ───────────────────────────────── */}
+      <section className="campaigns-section">
+        <div className="content-section">
+          {/* Section header */}
+          <div className="campaigns-section__header">
+            <div>
+              <h2 className="campaigns-section__title">✦ Live Campaigns</h2>
+              <p className="campaigns-section__subtitle">
+                Multi-campaign crowdfunding powered by{' '}
+                <a
+                  href={`https://stellar.expert/explorer/testnet/contract/${CAMPAIGNS_ID}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link-gold"
+                >
+                  CampaignsContract
+                </a>
+                {' + '}
+                <a
+                  href={`https://stellar.expert/explorer/testnet/contract/${LEADERBOARD_ID}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link-gold"
+                >
+                  LeaderboardContract
+                </a>
+                {' via inter-contract calls'}
+              </p>
+            </div>
+            {isConnected && (
+              <button
+                className="btn-primary"
+                onClick={() => setShowCreateModal(true)}
+                disabled={campaignTxState.status !== 'idle' && campaignTxState.status !== 'success' && campaignTxState.status !== 'error'}
+              >
+                + New Campaign
+              </button>
+            )}
+          </div>
+
+          {/* Main layout: campaign grid + leaderboard sidebar */}
+          <div className="campaigns-layout">
+            {/* Campaign grid */}
+            <div className="campaigns-grid-wrap">
+              {campaignLoading ? (
+                <div className="campaigns-loading">
+                  <div className="spinner" />
+                  <p>Loading campaigns from Stellar testnet…</p>
+                </div>
+              ) : campaigns.length === 0 ? (
+                <div className="campaigns-empty">
+                  <div className="campaigns-empty__icon">🚀</div>
+                  <p>No campaigns yet.</p>
+                  {isConnected && (
+                    <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                      Create the first campaign
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="campaigns-grid">
+                  {campaigns.map((c) => (
+                    <CampaignCard
+                      key={c.id}
+                      campaign={c}
+                      isConnected={isConnected}
+                      publicKey={publicKey ?? undefined}
+                      txState={campaignTxState}
+                      onDonate={(id, amt) => publicKey && donateToCampaign(publicKey, id, amt)}
+                      onClose={(_id) => { /* close_campaign — owner only */ }}
+                      onResetTx={resetCampaignTx}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Leaderboard sidebar */}
+            <Leaderboard
+              platformTotal={platformTotal}
+              campaignCount={campaigns.length}
+              isPolling={campaignPolling}
+              leaderboardId={LEADERBOARD_ID}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Create Campaign Modal */}
+      <CreateCampaignModal
+        isOpen={showCreateModal}
+        isBusy={campaignTxState.status !== 'idle' && campaignTxState.status !== 'success' && campaignTxState.status !== 'error'}
+        onClose={() => setShowCreateModal(false)}
+        onCreate={(title, desc, goalXLM) => {
+          if (!publicKey) return
+          setShowCreateModal(false)
+          createCampaign(publicKey, title, desc, goalXLM)
+        }}
+      />
+
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: 'var(--space-8) 0' }}>
         <div className="content-section" style={{ textAlign: 'center' }}>
@@ -355,7 +475,7 @@ export default function App() {
             <a href="https://stellar.org" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-gold)', textDecoration: 'none' }}>
               Stellar
             </a>{' '}
-            Testnet · Yellow Belt Level 2
+            Testnet · Orange Belt Level 3
           </span>
         </div>
       </footer>
