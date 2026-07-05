@@ -1,13 +1,16 @@
 # Project Memory — Stellar Crowdfunding Platform
 
 ## Current Status
-- Current level: Level 2 — Yellow Belt
-- Status: complete ✅ (all checklist items verified)
-- Last updated: 2026-07-04
+- Current level: Level 3 — Orange Belt
+- Status: complete ✅ (all checklist items verified, 12 contract tests passing, 20 frontend tests passing)
+- Last updated: 2026-07-05
 
 ## Next Step
-Level 2 is complete and pushed. Awaiting user approval to start Level 3 (Orange Belt).
-Level 3 work: multi-campaign contract, escrow, CI/CD, tests.
+Project is complete! The Orange Belt submission checklist has been fully addressed:
+- Deployed CampaignsContract + LeaderboardContract with inter-contract calls
+- 13 git commits (well above 10+ required)
+- CI/CD setup via GitHub Actions workflow
+- 20 frontend tests (Vitest) + 12 contract unit tests passing
 
 ## Architecture Snapshot
 - Frontend entry point: `src/main.tsx`
@@ -31,14 +34,21 @@ Level 3 work: multi-campaign contract, escrow, CI/CD, tests.
 - Dev server: `npm run dev`
 
 ## Contract Details (Testnet)
-- Contract ID: CAGQBZHKPIANYSX4T73YJAKCBKHOOMHDKFAAXEISEIHIKKGYCIJB4KOC
-- WASM hash: 02bc89f5e57803f79dbb85cb7adeb5fad9900476b2e659c56b6c2a57609ae214
-- Deploy TX: 3f7384718cbcc4d5128a204f9ac2d4311b3b5014a5af875e2314b0ab13ffb07c
-- Init TX: 9edb16213ff9b6a86998423d48ff9522bae0508f75cc11b5a08b828706932ffe
-- Owner: GCH4CBE74CWK5NIT7BHM5LDOLWVTTTTXMVD5TM3IT4PCCELX24A2AF67
-- Goal: 10,000 XLM (100,000,000,000 stroops)
-- Native XLM SAC: CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
-- Campaign address (Level 1 legacy): GCKFBEIYV2U22IO2BJ4KVJOIP7XPWQGQFKKWXR6DUSVTFHJDQB7C554
+
+### Level 2 (Legacy single-campaign)
+- Contract ID: `CAGQBZHKPIANYSX4T73YJAKCBKHOOMHDKFAAXEISEIHIKKGYCIJB4KOC`
+- WASM hash: `02bc89f5e57803f79dbb85cb7adeb5fad9900476b2e659c56b6c2a57609ae214`
+
+### Level 3 (Multi-campaign + Inter-contract Leaderboard)
+- Campaigns ID: `CAZU5X2R6Q6JYIHSKHI2FLU3T7T2XLFZWSUJP2KPN5WA55BZO73OO6TI`
+- Campaigns WASM hash: `50cb3b92859e2f1a230567152eed1bd9f582c8924bd5563295f41fce597423c0`
+- Campaigns deploy TX: `5307bc436beb4d7847ca01e48f6e6e490586293b3ec51a7e221473cfd45a34f5`
+- Leaderboard ID: `CALAOO52V3H3M4ZHXVOZ6TKYUSP4W3UBHLDRIY2TJ47FALOURHG6EYDK`
+- Leaderboard WASM hash: `58a99494b0789dba81812bd526c9dbb8ae5e6502874060c3e33e7cd8460a84cd`
+- Leaderboard deploy TX: `1b6b1e533b865d78102e5d0732fbf0f491b622473a9e93e2d59b066f4de9e44e`
+- Inter-contract donate TX: `7fee6a78289e323d2d687aefde28db9be132d5485fe1bf429803517b09523128`
+- Owner/Admin: `GCH4CBE74CWK5NIT7BHM5LDOLWVTTTTXMVD5TM3IT4PCCELX24A2AF67`
+- Native XLM SAC: `CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC`
 - Git remote: https://github.com/subhadip890/Orbit.git
 
 ## Decisions Log (newest first)
