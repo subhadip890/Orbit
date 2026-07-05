@@ -27,7 +27,7 @@ const CONTRACT_ID = import.meta.env.VITE_CONTRACT_ID || ''
 const HORIZON_URL = import.meta.env.VITE_HORIZON_URL || 'https://horizon-testnet.stellar.org'
 
 // Public Horizon account used for read-only simulation (fee payer doesn't matter for simulations)
-const READ_ACCOUNT = 'GAAZI4TCR3TY5OJHCTJC2A4QSY6CJWJH5IAJTGKIN2ER7LBNVKOCCWN'
+const READ_ACCOUNT = 'GCH4CBE74CWK5NIT7BHM5LDOLWVTTTTXMVD5TM3IT4PCCELX24A2AF67'
 
 const rpcServer = new SorobanRpc.Server(SOROBAN_RPC_URL)
 const horizonServer = new Horizon.Server(HORIZON_URL)
