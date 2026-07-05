@@ -20,8 +20,6 @@ jobs:
 
       - name: Install Rust toolchain (stable)
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32v1-none
 
       - name: Cache cargo registry
         uses: actions/cache@v4
@@ -34,7 +32,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cargo-
 
       - name: Run all contract tests (leaderboard + campaigns + crowdfunding)
-        run: cargo test 2>&1
+        run: cargo test
 
   # ── Job 2: Frontend Tests + Build ─────────────────────────────────────────
   frontend:
@@ -51,7 +49,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run Vitest frontend tests
         run: npm test
