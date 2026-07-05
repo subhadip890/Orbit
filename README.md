@@ -10,7 +10,81 @@
 |-------|------|--------|
 | Level 1 | ⬜ White Belt | ✅ Complete |
 | Level 2 | 🟡 Yellow Belt | ✅ Complete |
-| Level 3 | 🟠 Orange Belt | 🔜 Pending |
+| Level 3 | 🟠 Orange Belt | ✅ Complete |
+
+---
+
+## Level 3 — Orange Belt (Advanced Smart Contracts + Production dApp)
+
+### What's built
+
+A production-grade multi-campaign crowdfunding dApp with two Soroban smart contracts communicating via inter-contract calls:
+
+- **Two contracts on testnet** — `CampaignsContract` + `LeaderboardContract` linked via `env.invoke_contract`
+- **Inter-contract communication** — Every `donate()` call in `campaigns` automatically calls `record_donation()` in `leaderboard` (proven on-chain)
+- **Multi-campaign UI** — Grid of campaign cards with animated progress bars, inline donate inputs, owner close buttons
+- **Leaderboard sidebar** — Platform total donated pulled from `LeaderboardContract` with live 5s polling
+- **Create Campaign modal** — Launch new campaigns from the frontend with Soroban contract write
+- **Real-time event streaming** — Soroban events emitted on every `donate`, `create_campaign`, `close_campaign` — polled every 5s
+- **Transaction tracking** — `building → awaiting_signature → submitting → success/fail` states
+- **Mobile responsive** — 3 CSS breakpoints (1024px, 768px, 480px)
+- **Vitest frontend tests** — 20 passing tests across 3 test files
+- **GitHub Actions CI/CD** — cargo test + Vitest + Vite build + Vercel deploy on push
+- **12 contract unit tests** — 4 leaderboard + 5 campaigns + 3 crowdfunding
+
+### Contract Architecture
+
+```
+CampaignsContract (hub)
+  └─ create_campaign(owner, title, desc, goal)  → u32 (campaign ID)
+  └─ donate(donor, campaign_id, amount)          → i128 (total raised)
+       └── env.invoke_contract → LeaderboardContract.record_donation()
+  └─ close_campaign(campaign_id)                → transfers raised to owner
+  └─ get_campaign(campaign_id)                  → Campaign struct
+  └─ get_campaign_count()                       → u32
+
+LeaderboardContract (called by hub)
+  └─ initialize(hub)                            → (hub.require_auth enforced)
+  └─ record_donation(donor, amount, campaign_id)
+  └─ get_platform_total()                       → i128
+  └─ get_total_donated(donor)                   → i128
+  └─ get_donor_list()                           → Vec<Address>
+```
+
+### Deployed Contracts (Stellar Testnet)
+
+| Contract | Contract ID |
+|---|---|
+| CampaignsContract | `CAZU5X2R6Q6JYIHSKHI2FLU3T7T2XLFZWSUJP2KPN5WA55BZO73OO6TI` |
+| LeaderboardContract | `CALAOO52V3H3M4ZHXVOZ6TKYUSP4W3UBHLDRIY2TJ47FALOURHG6EYDK` |
+
+### Key Transaction Hashes
+
+| Action | TX Hash |
+|---|---|
+| Deploy Campaigns | `5307bc436beb4d7847ca01e48f6e6e490586293b3ec51a7e221473cfd45a34f5` |
+| Deploy Leaderboard | `1b6b1e533b865d78102e5d0732fbf0f491b622473a9e93e2d59b066f4de9e44e` |
+| Inter-contract donate | `7fee6a78289e323d2d687aefde28db9be132d5485fe1bf429803517b09523128` |
+
+The donate TX emits **3 events** in a single transaction: XLM token transfer + leaderboard inter-contract update + campaign donate event.
+
+### CI/CD Pipeline (`.github/workflows/ci.yml`)
+
+```
+push to main
+  ├─ Job 1: cargo test  (12 Rust contract tests on ubuntu-latest)
+  ├─ Job 2: npm test    (20 Vitest tests) + npm run build
+  └─ Job 3: Vercel deploy (production, on main only)
+```
+
+### Running locally
+
+```bash
+npm install
+npm run dev        # Frontend (Vite dev server)
+npm test           # 20 Vitest tests
+cd contracts/crowdfunding && cargo test  # 12 Soroban contract tests
+```
 
 ---
 
