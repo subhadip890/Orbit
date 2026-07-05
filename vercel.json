@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "VITE_NETWORK_PASSPHRASE": "Test SDF Network ; September 2015",
+    "VITE_HORIZON_URL": "https://horizon-testnet.stellar.org",
+    "VITE_SOROBAN_RPC_URL": "https://soroban-testnet.stellar.org",
+    "VITE_TOKEN_ADDRESS": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC",
+    "VITE_CAMPAIGNS_CONTRACT_ID": "CAZU5X2R6Q6JYIHSKHI2FLU3T7T2XLFZWSUJP2KPN5WA55BZO73OO6TI",
+    "VITE_LEADERBOARD_CONTRACT_ID": "CALAOO52V3H3M4ZHXVOZ6TKYUSP4W3UBHLDRIY2TJ47FALOURHG6EYDK",
+    "VITE_CROWDFUNDING_CONTRACT_ID": "CAGQBZHKPIANYSX4T73YJAKCBKHOOMHDKFAAXEISEIHIKKGYCIJB4KOC"
+  }
+}

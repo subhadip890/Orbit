@@ -1,0 +1,99 @@
+name: CI / CD — Orbit dApp
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── Job 1: Soroban Contract Tests ─────────────────────────────────────────
+  contracts:
+    name: Rust Contract Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts/crowdfunding
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Run all contract tests (leaderboard + campaigns + crowdfunding)
+        run: cargo test 2>&1
+
+  # ── Job 2: Frontend Tests + Build ─────────────────────────────────────────
+  frontend:
+    name: Frontend Tests + Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest frontend tests
+        run: npm test
+
+      - name: Build production bundle
+        run: npm run build
+        env:
+          VITE_CAMPAIGNS_CONTRACT_ID: ${{ secrets.VITE_CAMPAIGNS_CONTRACT_ID }}
+          VITE_LEADERBOARD_CONTRACT_ID: ${{ secrets.VITE_LEADERBOARD_CONTRACT_ID }}
+          VITE_TOKEN_ADDRESS: CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+          VITE_NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+          VITE_HORIZON_URL: https://horizon-testnet.stellar.org
+          VITE_SOROBAN_RPC_URL: https://soroban-testnet.stellar.org
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── Job 3: Deploy to Vercel (main branch only) ────────────────────────────
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: [contracts, frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
