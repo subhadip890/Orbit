@@ -68,6 +68,19 @@ LeaderboardContract (called by hub)
 
 The donate TX emits **3 events** in a single transaction: XLM token transfer + leaderboard inter-contract update + campaign donate event.
 
+### Screenshots & Demo
+
+- **Desktop grid view**: Renders multi-campaign cards with progress indicators, platform total leaderboard, and options to donate/close.
+  ![Desktop Layout](public/screenshots/desktop_layout.png)
+
+- **Mobile responsive UI**: Responsive column layout styled with Vanilla CSS breakpoints.
+  ![Mobile Layout](public/screenshots/mobile_responsive.png)
+
+- **CI/CD Pipeline Running**: GitHub Actions pipeline checking both Rust smart contract tests and Vitest UI tests on every push.
+  ![CI Pipeline](public/screenshots/cicd_pipeline.png)
+
+- **Demo Video Walkthrough**: View the walkthrough video recording included in the repository: [public/screenshots/orbit_level3_demo.webp](public/screenshots/orbit_level3_demo.webp).
+
 ### CI/CD Pipeline (`.github/workflows/ci.yml`)
 
 ```
