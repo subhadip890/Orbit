@@ -219,6 +219,7 @@ export function useCampaigns(
       }
       throw new Error(`Transaction did not confirm: ${getResult.status}`)
     } catch (err) {
+      console.error('submitTx error details:', err)
       let message = 'Transaction failed.'
       let code: string | undefined
       if (err instanceof Error) {
@@ -232,6 +233,10 @@ export function useCampaigns(
         } else {
           message = err.message
         }
+      } else if (err && typeof err === 'object' && 'message' in err) {
+        message = String((err as any).message)
+      } else if (err) {
+        message = String(err)
       }
       setTxState({ status: 'error', message, code, campaignId })
       return { ok: false, error: message }
