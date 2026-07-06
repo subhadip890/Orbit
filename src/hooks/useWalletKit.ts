@@ -12,9 +12,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import {
   isConnected as freighterIsConnected,
-  isAllowed as freighterIsAllowed,
-  setAllowed as freighterSetAllowed,
-  getAddress as freighterGetAddress,
+  requestAccess as freighterRequestAccess,
   signTransaction as freighterSignTransaction,
 } from '@stellar/freighter-api'
 import { Horizon } from '@stellar/stellar-sdk'
@@ -131,30 +129,19 @@ export function useWalletKit() {
     }
 
     try {
-      // Request access — opens Freighter popup
-      let allowed = false
-      try {
-        const allowedResult = await freighterIsAllowed()
-        allowed = allowedResult.isAllowed
-      } catch {
-        allowed = false
+      // Request access — opens Freighter popup if not allowed and retrieves address
+      const accessResult = await freighterRequestAccess()
+      if (accessResult.error) {
+        setWalletStatus({
+          status: 'error',
+          message: 'Connection rejected — you dismissed the Freighter popup.',
+          code: 'REJECTED',
+        })
+        return
       }
 
-      if (!allowed) {
-        const setResult = await freighterSetAllowed()
-        // Error type 2: REJECTED — user dismissed popup
-        if (!setResult.isAllowed) {
-          setWalletStatus({
-            status: 'error',
-            message: 'Connection rejected — you dismissed the Freighter popup.',
-            code: 'REJECTED',
-          })
-          return
-        }
-      }
-
-      const addrResult = await freighterGetAddress()
-      if (!addrResult.address) {
+      const address = (accessResult as unknown as { address: string }).address
+      if (!address) {
         setWalletStatus({
           status: 'error',
           message: 'Could not get address from Freighter.',
@@ -165,11 +152,11 @@ export function useWalletKit() {
 
       setWalletStatus({
         status: 'connected',
-        publicKey: addrResult.address,
+        publicKey: address,
         walletId: 'freighter',
         walletName: 'Freighter',
       })
-      await fetchBalance(addrResult.address)
+      await fetchBalance(address)
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       const lower = msg.toLowerCase()
