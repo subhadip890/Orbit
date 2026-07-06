@@ -55,6 +55,11 @@ export default function App() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [donateAmount, setDonateAmount] = useState('')
 
+  const handleOpenCreateModal = useCallback(() => {
+    resetCampaignTx()
+    setShowCreateModal(true)
+  }, [resetCampaignTx])
+
   const handleDonate = useCallback(async () => {
     if (!publicKey || !donateAmount) return
     const amount = parseFloat(donateAmount)
@@ -400,7 +405,7 @@ export default function App() {
             {isConnected && (
               <button
                 className="btn-primary"
-                onClick={() => setShowCreateModal(true)}
+                onClick={handleOpenCreateModal}
                 disabled={campaignTxState.status !== 'idle' && campaignTxState.status !== 'success' && campaignTxState.status !== 'error'}
               >
                 + New Campaign
@@ -422,7 +427,7 @@ export default function App() {
                   <div className="campaigns-empty__icon">🚀</div>
                   <p>No campaigns yet.</p>
                   {isConnected && (
-                    <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+                    <button className="btn-primary" onClick={handleOpenCreateModal}>
                       Create the first campaign
                     </button>
                   )}
@@ -459,13 +464,13 @@ export default function App() {
       {/* Create Campaign Modal */}
       <CreateCampaignModal
         isOpen={showCreateModal}
-        isBusy={campaignTxState.status !== 'idle' && campaignTxState.status !== 'success' && campaignTxState.status !== 'error'}
+        txState={campaignTxState}
         onClose={() => setShowCreateModal(false)}
         onCreate={(title, desc, goalXLM) => {
           if (!publicKey) return
-          setShowCreateModal(false)
           createCampaign(publicKey, title, desc, goalXLM)
         }}
+        onResetTx={resetCampaignTx}
       />
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
