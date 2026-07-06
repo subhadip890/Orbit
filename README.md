@@ -2,6 +2,8 @@
 
 Orbit is a decentralized crowdfunding platform built on the Stellar network. Connect your Freighter, xBull, or LOBSTR wallet to launch fundraising campaigns or donate XLM directly to active missions — transparently, instantly, and trustlessly.
 
+🚀 **Live Deployment URL**: [https://orbit-smoky-kappa.vercel.app/](https://orbit-smoky-kappa.vercel.app/)
+
 ---
 
 ## 🏆 Project Belt Status
