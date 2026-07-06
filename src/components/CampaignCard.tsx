@@ -30,10 +30,13 @@ export const CampaignCard = memo(function CampaignCard({
   const [showDonate, setShowDonate] = useState(false)
 
   const isOwner = isConnected && publicKey === campaign.owner
+  const isTargetTx = txState.campaignId === campaign.id
   const isBusy =
-    txState.status === 'building' ||
-    txState.status === 'awaiting_signature' ||
-    txState.status === 'submitting'
+    isTargetTx && (
+      txState.status === 'building' ||
+      txState.status === 'awaiting_signature' ||
+      txState.status === 'submitting'
+    )
 
   const progressPct = Math.round(campaign.progress * 100)
   const raisedXLM = stroopsToXlm(campaign.raised)
@@ -101,12 +104,12 @@ export const CampaignCard = memo(function CampaignCard({
       </div>
 
       {/* Tx status */}
-      {(txState.status === 'success' || txState.status === 'error') && (
+      {isTargetTx && (txState.status === 'success' || txState.status === 'error') && (
         <div className="campaign-card__tx-status" style={{ borderColor: statusColor }}>
           <span style={{ color: statusColor }}>
-            {txState.status === 'success'
+            {txState.status === 'success' && txState.hash
               ? `✅ TX: ${txState.hash.slice(0, 8)}…${txState.hash.slice(-8)}`
-              : `❌ ${(txState as { status: 'error'; message: string }).message}`}
+              : `❌ ${txState.message || 'Transaction failed.'}`}
           </span>
           <button className="btn-ghost btn-sm" onClick={onResetTx}>✕</button>
         </div>

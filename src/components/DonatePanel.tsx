@@ -142,7 +142,6 @@ export const DonatePanel: FC<DonatePanelProps> = ({
               value={amount}
               onChange={(e) => {
                 onAmountChange(e.target.value)
-                onReset()
               }}
               disabled={isPending}
               aria-label="Donation amount in XLM"

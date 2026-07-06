@@ -45,13 +45,13 @@ export interface Campaign {
   progress: number // 0–1
 }
 
-export type TxState =
-  | { status: 'idle' }
-  | { status: 'building' }
-  | { status: 'awaiting_signature' }
-  | { status: 'submitting' }
-  | { status: 'success'; hash: string }
-  | { status: 'error'; message: string; code?: string }
+export interface TxState {
+  status: 'idle' | 'building' | 'awaiting_signature' | 'submitting' | 'success' | 'error'
+  hash?: string
+  message?: string
+  code?: string
+  campaignId?: number
+}
 
 // ── Internal: RPC simulation helper ──────────────────────────────────────────
 
@@ -153,11 +153,12 @@ export function useCampaigns(
     senderPublicKey: string,
     contractId: string,
     method: string,
-    args: ReturnType<typeof nativeToScVal>[]
+    args: ReturnType<typeof nativeToScVal>[],
+    campaignId?: number
   ): Promise<{ ok: boolean; hash?: string; error?: string }> {
     if (!signTxXDR) return { ok: false, error: 'Wallet not connected' }
     try {
-      setTxState({ status: 'building' })
+      setTxState({ status: 'building', campaignId })
       const contract = new Contract(contractId)
       const account = await rpcServer.getAccount(senderPublicKey)
       const tx = new TransactionBuilder(account, {
@@ -173,7 +174,7 @@ export function useCampaigns(
         const err = simResult.error.toLowerCase()
         if (err.includes('underfunded') || err.includes('insufficient')) {
           const msg = 'Insufficient XLM balance for this transaction.'
-          setTxState({ status: 'error', message: msg, code: 'INSUFFICIENT_BALANCE' })
+          setTxState({ status: 'error', message: msg, code: 'INSUFFICIENT_BALANCE', campaignId })
           return { ok: false, error: msg }
         }
         throw new Error(simResult.error)
@@ -181,7 +182,7 @@ export function useCampaigns(
 
       const preparedTx = SorobanRpc.assembleTransaction(tx, simResult).build()
 
-      setTxState({ status: 'awaiting_signature' })
+      setTxState({ status: 'awaiting_signature', campaignId })
       let signedXDR: string
       try {
         signedXDR = await signTxXDR(preparedTx.toXDR(), NETWORK_PASSPHRASE)
@@ -191,11 +192,11 @@ export function useCampaigns(
         const msg = isRejected
           ? 'Transaction rejected — you cancelled the signature request.'
           : `Signing failed: ${sigErr instanceof Error ? sigErr.message : String(sigErr)}`
-        setTxState({ status: 'error', message: msg, code: isRejected ? 'USER_REJECTED' : undefined })
+        setTxState({ status: 'error', message: msg, code: isRejected ? 'USER_REJECTED' : undefined, campaignId })
         return { ok: false, error: msg }
       }
 
-      setTxState({ status: 'submitting' })
+      setTxState({ status: 'submitting', campaignId })
       const signedTx = TransactionBuilder.fromXDR(signedXDR, NETWORK_PASSPHRASE)
       const sendResult = await rpcServer.sendTransaction(signedTx)
       if (sendResult.status === 'ERROR') {
@@ -212,7 +213,7 @@ export function useCampaigns(
       }
 
       if (getResult.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
-        setTxState({ status: 'success', hash: sendResult.hash })
+        setTxState({ status: 'success', hash: sendResult.hash, campaignId })
         setTimeout(fetchAll, 2000)
         return { ok: true, hash: sendResult.hash }
       }
@@ -232,7 +233,7 @@ export function useCampaigns(
           message = err.message
         }
       }
-      setTxState({ status: 'error', message, code })
+      setTxState({ status: 'error', message, code, campaignId })
       return { ok: false, error: message }
     }
   }
@@ -242,14 +243,14 @@ export function useCampaigns(
     async (senderPublicKey: string, campaignId: number, amountXLM: number) => {
       if (amountXLM <= 0) {
         const msg = 'Please enter a valid amount greater than 0 XLM.'
-        setTxState({ status: 'error', message: msg })
+        setTxState({ status: 'error', message: msg, campaignId })
         return { ok: false, error: msg }
       }
       return submitTx(senderPublicKey, CAMPAIGNS_ID, 'donate', [
         nativeToScVal(senderPublicKey, { type: 'address' }),
         nativeToScVal(campaignId, { type: 'u32' }),
         nativeToScVal(xlmToStroops(amountXLM), { type: 'i128' }),
-      ])
+      ], campaignId)
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [signTxXDR, fetchAll]
@@ -274,6 +275,17 @@ export function useCampaigns(
     [signTxXDR, fetchAll]
   )
 
+  // ── Close a campaign ───────────────────────────────────────────────────────
+  const closeCampaign = useCallback(
+    async (ownerPublicKey: string, campaignId: number) => {
+      return submitTx(ownerPublicKey, CAMPAIGNS_ID, 'close_campaign', [
+        nativeToScVal(campaignId, { type: 'u32' }),
+      ], campaignId)
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [signTxXDR, fetchAll]
+  )
+
   const resetTx = useCallback(() => setTxState({ status: 'idle' }), [])
 
   return {
@@ -285,6 +297,7 @@ export function useCampaigns(
     hasContract: Boolean(CAMPAIGNS_ID),
     donate,
     createCampaign,
+    closeCampaign,
     resetTx,
     fetchAll,
     CAMPAIGNS_ID,

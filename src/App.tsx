@@ -46,6 +46,7 @@ export default function App() {
     loading: campaignLoading,
     donate: donateToCampaign,
     createCampaign,
+    closeCampaign,
     resetTx: resetCampaignTx,
     CAMPAIGNS_ID,
     LEADERBOARD_ID,
@@ -436,7 +437,7 @@ export default function App() {
                       publicKey={publicKey ?? undefined}
                       txState={campaignTxState}
                       onDonate={(id, amt) => publicKey && donateToCampaign(publicKey, id, amt)}
-                      onClose={(_id) => { /* close_campaign — owner only */ }}
+                      onClose={(id) => publicKey && closeCampaign(publicKey, id)}
                       onResetTx={resetCampaignTx}
                     />
                   ))}
